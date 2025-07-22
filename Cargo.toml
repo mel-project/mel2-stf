@@ -1,0 +1,13 @@
+[package]
+name = "mel2-stf"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+bcs = "0.1.6"
+blake3 = "1.8.2"
+bytes = { version = "1.10.1", features = ["serde"] }
+derive_more = { version = "2.0.1", features = ["full"] }
+novasmt = "0.3.0-alpha.0"
+serde = { version = "1.0.219", features = ["derive"] }
+tmelcrypt = "0.2.7"
