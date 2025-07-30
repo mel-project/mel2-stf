@@ -532,12 +532,14 @@ dependencies = [
 name = "mel2-stf"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "bcs",
  "blake3",
  "bytes",
  "derive_more",
  "novasmt",
  "serde",
+ "thiserror 2.0.12",
  "tmelcrypt",
 ]
 
@@ -567,9 +569,9 @@ dependencies = [
 
 [[package]]
 name = "novasmt"
-version = "0.3.0-alpha.0"
+version = "0.3.0-alpha.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eb3f673b4b08b3b92834010761880e59d0dd0bd73e359a06fbd92137eb99e1f4"
+checksum = "8ae11f6512064a04e8f850ac6fa450f9f0f10158f81471b37f3f986a40dfefa7"
 dependencies = [
  "anyhow",
  "arrayref",

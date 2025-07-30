@@ -1,9 +1,9 @@
-mod block;
 mod contract;
+mod state;
 mod transaction;
 
-pub use block::*;
 pub use contract::*;
+pub use state::*;
 pub use transaction::*;
 
 pub fn add(left: u64, right: u64) -> u64 {

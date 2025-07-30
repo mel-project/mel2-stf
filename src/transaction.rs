@@ -4,13 +4,13 @@ use bytes::Bytes;
 use derive_more::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign, Sum};
 use serde::{Deserialize, Serialize};
 
-use crate::contract::Address;
+use crate::{ContractCode, contract::Address};
 
-/// Network ID.
+/// Chain ID.
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub struct NetId(pub u16);
+pub struct ChainId(pub u16);
 
-impl NetId {
+impl ChainId {
     pub const BETANET: Self = Self(0x0814);
     pub const TESTNET: Self = Self(0xffff);
 }
@@ -18,13 +18,19 @@ impl NetId {
 /// A transaction in the block. Moves assets from one address to another.
 #[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Transaction {
-    pub netid: NetId,
+    pub chain_id: ChainId,
     pub nonce: u64,
+    pub height: u64,
+
     pub from: Address,
     pub to: Address,
+    pub deploy: Option<ContractCode>,
+
     pub fee: u128,
     pub assets: BTreeMap<TokenId, Quantity>,
-    pub data: Bytes,
+
+    pub auth_data: Bytes,
+    pub call_data: Bytes,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
