@@ -37,6 +37,22 @@ impl ContractCode {
         data: &[u8],
         gas: &mut u64,
     ) -> Option<bool> {
-        todo!()
+        let txhash = calling_tx
+            .map(|tx| {
+                let mut tx = tx.clone();
+                tx.auth_data = Default::default();
+                tmelcrypt::hash_single(bcs::to_bytes(&tx).unwrap())
+            })
+            .unwrap_or_default();
+        match self {
+            ContractCode::Ed25519PK(ed25519_pk) => {
+                *gas = gas.checked_sub(10000)?;
+                if entry == 0 {
+                    Some(false)
+                } else {
+                    Some(ed25519_pk.verify(&txhash, data))
+                }
+            }
+        }
     }
 }

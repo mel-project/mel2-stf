@@ -135,6 +135,9 @@ pub enum ApplyTxError {
     #[error("wrong network ID")]
     WrongNetId,
 
+    #[error("wrong block height")]
+    WrongHeight,
+
     #[error("from contract failed to run")]
     FromFailed,
 
