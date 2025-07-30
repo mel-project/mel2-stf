@@ -26,7 +26,7 @@ pub struct Transaction {
     pub to: Address,
     pub deploy: Option<ContractCode>,
 
-    pub fee: u128,
+    pub fee: Quantity,
     pub assets: BTreeMap<TokenId, Quantity>,
 
     pub auth_data: Bytes,

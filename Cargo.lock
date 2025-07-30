@@ -569,9 +569,9 @@ dependencies = [
 
 [[package]]
 name = "novasmt"
-version = "0.3.0-alpha.1"
+version = "0.3.0-alpha.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8ae11f6512064a04e8f850ac6fa450f9f0f10158f81471b37f3f986a40dfefa7"
+checksum = "3caa45958281f4228ae6c13147e07089e7f64483205c460bc5bf67784c0ef8f8"
 dependencies = [
  "anyhow",
  "arrayref",
