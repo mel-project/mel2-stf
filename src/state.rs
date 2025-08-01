@@ -31,8 +31,8 @@ impl Header {
 }
 
 pub struct StateHandle<'a, S: NodeStore> {
-    last_header: Header,
-    state: Tree<'a, S>,
+    pub(crate) last_header: Header,
+    pub(crate) state: Tree<'a, S>,
 }
 
 impl<'a, S: NodeStore> Clone for StateHandle<'a, S> {
