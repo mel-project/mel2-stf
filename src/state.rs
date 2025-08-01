@@ -1,23 +1,22 @@
-use blake3::Hash;
-
 use novasmt::{NodeStore, Tree};
+use serde::{Deserialize, Serialize};
 use thiserror::Error;
+use tmelcrypt::HashVal;
 
 use crate::{Address, ChainId, ContractCode, Quantity, TokenId, Transaction};
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Header {
     pub chain_id: ChainId,
-    pub prev: Hash,
+    pub prev: HashVal,
     pub height: u64,
     pub gas_price: Quantity, // the price of 1M gas
-    pub state: Hash,
+    pub state: HashVal,
 }
 
 impl Header {
     /// Given the gas price in this header, calculate the exact amount of gas available to a transaction with the given transaction fee.
     pub fn fee_to_gas(&self, fee: Quantity) -> u64 {
-        // Compute floor(fee * 1_000_000 / gas_price) using integer-only arithmetic without overflow.
         let price = self.gas_price.0;
         let fee0 = fee.0;
         let whole = fee0 / price;
@@ -31,17 +30,24 @@ impl Header {
     }
 }
 
-#[derive(Clone)]
 pub struct StateHandle<'a, S: NodeStore> {
     last_header: Header,
     state: Tree<'a, S>,
+}
+
+impl<'a, S: NodeStore> Clone for StateHandle<'a, S> {
+    fn clone(&self) -> Self {
+        Self {
+            last_header: self.last_header.clone(),
+            state: self.state.clone(),
+        }
+    }
 }
 
 impl<'a, S: NodeStore> StateHandle<'a, S> {
     /// Applies the transaction, returning the new state handle.
     pub fn apply_tx(mut self, txn: &Transaction) -> Result<Self, ApplyTxError> {
         let mut gas_left = self.last_header.fee_to_gas(txn.fee);
-
         if self.last_header.chain_id != txn.chain_id {
             return Err(ApplyTxError::WrongNetId);
         }
@@ -72,7 +78,7 @@ impl<'a, S: NodeStore> StateHandle<'a, S> {
             )
             .ok_or(ApplyTxError::OutOfGas)?
         {
-            return Err(ApplyTxError::FromFailed);
+            return Err(ApplyTxError::ToFailed);
         }
         // execute the fees.
         let from_mel_balance = self.get_balance(txn.from, TokenId::MEL)?;
@@ -149,4 +155,23 @@ pub enum ApplyTxError {
 
     #[error("State item corruption {0:?}")]
     StateCorruption(#[from] anyhow::Error),
+}
+
+#[cfg(test)]
+mod tests {
+    use tmelcrypt::HashVal;
+
+    use crate::Header;
+
+    #[test]
+    fn gas_fee_test() {
+        let hdr = Header {
+            chain_id: crate::ChainId(100),
+            prev: HashVal::default(),
+            height: 100,
+            gas_price: crate::Quantity(1_900_000),
+            state: HashVal::default(),
+        };
+        dbg!(hdr.fee_to_gas(crate::Quantity(1_000)));
+    }
 }
