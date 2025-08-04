@@ -7,9 +7,13 @@ use tmelcrypt::{Ed25519PK, HashVal};
 use crate::{Header, TokenId, Transaction};
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone, Copy, Eq, Hash, From, Into)]
+/// A contract address in Mel.
 pub struct Address([u8; 32]);
 
 impl Address {
+    /// The zero address, used for special-purpose transactions.
+    pub const ZERO: Address = Address([0; 32]);
+
     /// The state key where a token balance is held.
     pub fn token_state_key(&self, token: TokenId) -> HashVal {
         tmelcrypt::hash_single(&bcs::to_bytes(&(self.0, b"token", token)).unwrap())
