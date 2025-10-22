@@ -108,7 +108,11 @@ impl<'a, S: NodeStore> StateHandle<'a, S> {
             .map_err(|e| ApplyTxError::StateCorruption(e.into()))
     }
 
-    fn get_balance(&self, addr: Address, tok: TokenId) -> Result<Quantity, ApplyTxError> {
+    pub(crate) fn get_balance(
+        &self,
+        addr: Address,
+        tok: TokenId,
+    ) -> Result<Quantity, ApplyTxError> {
         let balance = self.state.get(addr.token_state_key(tok).0)?;
         if balance.is_empty() {
             return Err(ApplyTxError::OutOfMoney(tok));
@@ -116,7 +120,7 @@ impl<'a, S: NodeStore> StateHandle<'a, S> {
         bcs::from_bytes(&balance).map_err(|e| ApplyTxError::StateCorruption(anyhow::anyhow!(e)))
     }
 
-    fn set_balance(
+    pub(crate) fn set_balance(
         &mut self,
         addr: Address,
         tok: TokenId,

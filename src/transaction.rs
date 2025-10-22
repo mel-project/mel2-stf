@@ -38,6 +38,7 @@ pub struct TokenId(pub u64);
 
 impl TokenId {
     pub const MEL: Self = Self(0);
+    pub const SYM: Self = Self(1);
 }
 
 /// Newtype representing a monetary value in microunits. The Display and FromStr implementations divide by 1,000,000 automatically.

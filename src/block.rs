@@ -1,10 +1,11 @@
 use novasmt::{NodeStore, Tree};
 use serde::{Deserialize, Serialize};
+use thiserror::Error;
 use tmelcrypt::HashVal;
 
-use crate::{Address, ApplyTxError, ChainId, Header, Quantity, StateHandle, Transaction};
+use crate::{Address, ApplyTxError, ChainId, Header, Quantity, StateHandle, TokenId, Transaction};
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 /// A block, committing to a certain state in the header, and including the list of transactions since the last block height.
 pub struct Block {
     pub header: Header,
@@ -50,6 +51,23 @@ impl Block {
             transactions: vec![],
         }
     }
+
+    /// Applies and validates the next block.
+    pub fn apply_and_validate(
+        &self,
+        block: &Block,
+        store: &impl NodeStore,
+    ) -> Result<Block, ApplyBlockError> {
+        let mut next = self.next_block(store);
+        for txn in block.transactions.iter() {
+            next.apply_tx(txn.clone())?;
+        }
+        let next = next.sealed(block.seal_info)?;
+        if next.header != block.header {
+            return Err(ApplyBlockError::HeaderMismatch);
+        }
+        Ok(next)
+    }
 }
 
 /// A block that is "in-progress", not yet sealed into an actual block yet.
@@ -68,24 +86,58 @@ impl<'a, S: NodeStore> InProgressBlock<'a, S> {
     }
 
     /// "Seals" this block into a proper block.
-    pub fn seal(self, seal_info: SealingInfo) -> Block {
-        // TODO: per-block maintenance (melswap, coinbase, etc)
-        Block {
-            header: Header {
-                chain_id: self.handle.last_header.chain_id,
-                prev: tmelcrypt::hash_single(bcs::to_bytes(&self.handle.last_header).unwrap()),
-                height: self.handle.last_header.height + 1,
-                gas_price: self.handle.last_header.gas_price,
-                state: HashVal(self.handle.state.root_hash()),
-            },
+    pub fn sealed(mut self, seal_info: SealingInfo) -> Result<Block, SealBlockError> {
+        // TODO: a proper coinbase system rather than just giving 1 MEL to the proposer
+        let last_gas_price = self.handle.last_header.gas_price.0;
+        if seal_info.new_gas_price.0 > last_gas_price * 10 / 9 + 1
+            || seal_info.new_gas_price.0 < last_gas_price * 9 / 10
+        {
+            return Err(SealBlockError::GasPriceOutOfRange);
+        }
+
+        let new_prop_balance = self
+            .handle
+            .get_balance(seal_info.proposer, TokenId::MEL)
+            .unwrap_or_default()
+            + Quantity(1_000_000);
+        self.handle
+            .set_balance(seal_info.proposer, TokenId::MEL, new_prop_balance)?;
+        let header = Header {
+            chain_id: self.handle.last_header.chain_id,
+            prev: tmelcrypt::hash_single(bcs::to_bytes(&self.handle.last_header).unwrap()),
+            height: self.handle.last_header.height + 1,
+            gas_price: seal_info.new_gas_price,
+            state: HashVal(self.handle.state.root_hash()),
+        };
+        self.handle.state.commit().unwrap();
+        Ok(Block {
+            header,
             transactions: self.transactions,
             seal_info,
-        }
+        })
     }
 }
 
+#[derive(Error, Debug)]
+pub enum SealBlockError {
+    #[error("new gas price out of range")]
+    GasPriceOutOfRange,
+    #[error("applying coinbase failed: {0:?}")]
+    CoinbaseFailed(#[from] ApplyTxError),
+}
+
+#[derive(Error, Debug)]
+pub enum ApplyBlockError {
+    #[error("applying transaction failed: {0:?}")]
+    ApplyTxFailed(#[from] ApplyTxError),
+    #[error("sealing failed: {0:?}")]
+    SealFailed(#[from] SealBlockError),
+    #[error("header mismatch")]
+    HeaderMismatch,
+}
+
 /// The "sealing info" of the block, which records the discretionary actions of the block producer to seal this block.
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug, Copy)]
 pub struct SealingInfo {
     pub proposer: Address,
     pub new_gas_price: Quantity,
