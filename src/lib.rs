@@ -1,10 +1,12 @@
 mod block;
 mod contract;
+mod era;
 mod state;
 mod transaction;
 
 pub use block::*;
 pub use contract::*;
+pub use era::*;
 pub use state::*;
 pub use transaction::*;
 
